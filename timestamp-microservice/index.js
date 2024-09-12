@@ -23,6 +23,7 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
+// Function to validate date strings in YYYY-MM-DD format
 function isValidDate(dateString) {
   const regex = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -37,43 +38,51 @@ function isValidDate(dateString) {
     date.getUTCDate() == day
   );
 }
+
+// Function to format a valid date string to UTC string
 function formatDate(dateString) {
   const date = new Date(dateString);
-
   return date.toUTCString();
 }
+
+// Function to check if a date string is a Unix timestamp
 function isUnixTimestamp(dateString) {
   const timestamp = Number(dateString);
-
-  if (!isNaN(timestamp) && isFinite(timestamp)) {
-    return dateString.length === 10 || dateString.length === 13;
-  }
-
-  return false;
+  return !isNaN(timestamp) && isFinite(timestamp);
 }
+
+// Function to convert Unix timestamp to UTC string
 function unixToUTC(unixTimestamp) {
   const timestamp =
-    unixTimestamp.length === 10 ? unixTimestamp * 1000 : unixTimestamp;
-
+    unixTimestamp.toString().length === 10
+      ? unixTimestamp * 1000
+      : unixTimestamp;
   const date = new Date(Number(timestamp));
-
   return date.toUTCString();
 }
-app.get("/api/:date", async function (req, res) {
-  //
-  if (isUnixTimestamp(req.params.date)) {
-    const utc_date = unixToUTC(req.params.date);
 
-    return res.json({ unix: req.params.date, utc: utc_date });
-  }
-  if (!isValidDate(req.params.date)) {
-    return res.json({ error: "Invalid Date" }); // Return to stop further execution
-  }
-  const date = formatDate(req.params.date);
+// API endpoint to handle both date string and Unix timestamp
+app.get("/api/:date", function (req, res) {
+  const dateParam = req.params.date;
 
-  res.json({ unix: new Date(req.params.date).getTime(), utc: date });
+  // Check if dateParam is a valid Unix timestamp
+  if (isUnixTimestamp(dateParam)) {
+    const unixTimestamp = Number(dateParam);
+    const utcDate = unixToUTC(unixTimestamp);
+    return res.json({ unix: unixTimestamp, utc: utcDate });
+  }
+
+  // Check if dateParam is a valid date string (YYYY-MM-DD)
+  if (!isValidDate(dateParam)) {
+    return res.json({ error: "Invalid Date" });
+  }
+
+  // Handle valid date string
+  const date = formatDate(dateParam);
+  res.json({ unix: new Date(dateParam).getTime(), utc: date });
 });
 
+// API endpoint to return the current date in Unix and UTC formats
 app.get("/api/", function (req, res) {
   const currentDate = new Date();
   const formattedDate = currentDate.toUTCString();
