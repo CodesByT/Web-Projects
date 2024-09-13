@@ -23,61 +23,49 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
-function isValidDate(dateString) {
-  const regex = /^\d{4}-\d{2}-\d{2}$/;
-
-  if (!dateString.match(regex)) return false;
-
-  const date = new Date(dateString);
-  const [year, month, day] = dateString.split("-");
-
-  return (
-    date.getUTCFullYear() == year &&
-    date.getUTCMonth() + 1 == month &&
-    date.getUTCDate() == day
-  );
-}
-function formatDate(dateString) {
-  const date = new Date(dateString);
-
-  return date.toUTCString();
-}
+// Function to check if a string is a valid Unix timestamp
 function isUnixTimestamp(dateString) {
   const timestamp = Number(dateString);
-
-  if (!isNaN(timestamp) && isFinite(timestamp)) {
-    return dateString.length === 10 || dateString.length === 13;
-  }
-
-  return false;
+  return !isNaN(timestamp) && isFinite(timestamp);
 }
+
+// Function to convert Unix timestamp to UTC string
 function unixToUTC(unixTimestamp) {
   const timestamp =
-    unixTimestamp.length === 10 ? unixTimestamp * 1000 : unixTimestamp;
-
+    unixTimestamp.toString().length === 10
+      ? unixTimestamp * 1000
+      : unixTimestamp;
   const date = new Date(Number(timestamp));
-
   return date.toUTCString();
 }
-app.get("/api/:date", async function (req, res) {
-  //
-  if (isUnixTimestamp(req.params.date)) {
-    const utc_date = unixToUTC(req.params.date);
 
-    return res.json({ unix: req.params.date, utc: utc_date });
-  }
-  if (!isValidDate(req.params.date)) {
-    return res.json({ error: "Invalid Date" }); // Return to stop further execution
-  }
-  const date = formatDate(req.params.date);
+// API endpoint to handle both date string and Unix timestamp
+app.get("/api/:date", function (req, res) {
+  const dateParam = req.params.date;
 
-  res.json({ unix: new Date(req.params.date).getTime(), utc: date });
+  let date;
+
+  // Check if dateParam is a valid Unix timestamp
+  if (isUnixTimestamp(dateParam)) {
+    date = new Date(Number(dateParam));
+  } else {
+    // Parse dateParam as a date string using new Date()
+    date = new Date(dateParam);
+  }
+
+  // Check if the date is valid
+  if (date.toString() === "Invalid Date") {
+    return res.json({ error: "Invalid Date" });
+  }
+
+  // Return the valid date in Unix and UTC format
+  res.json({ unix: date.getTime(), utc: date.toUTCString() });
 });
 
+// API endpoint to return the current date in Unix and UTC formats
 app.get("/api/", function (req, res) {
   const currentDate = new Date();
-  const formattedDate = currentDate.toUTCString();
-  res.json({ unix: currentDate.getTime(), utc: formattedDate });
+  res.json({ unix: currentDate.getTime(), utc: currentDate.toUTCString() });
 });
 
 // Listen on port set in environment variable or default to 3000
